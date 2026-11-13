@@ -2,8 +2,8 @@
 
 **One sentence:** The Pool keeps the music a person was recommended together with the name of whoever recommended it, so that a track heard once in a friend's company is still findable six months later instead of lost to the end of a listening session.
 
-**Deployed:** API at [https://mgt3745-hw4.semajjohnson.workers.dev](https://mgt3745-hw4.semajjohnson.workers.dev) — the front end is not yet hosted; see Status.
-**Status:** Partly working. The Worker and D1 database are live and all seven code evals pass against the deployed API. The three front-end files run locally through Live Server but are not yet served from GitHub Pages, so there is no single URL a stranger can open. Pages goes up before the November 19 deployment checkpoint.
+**Deployed:** [https://semajjohnson.github.io/mgt3745-final-semajjohnson/](https://semajjohnson.github.io/mgt3745-final-semajjohnson/)
+**Status:** Working. The front end is served from GitHub Pages and calls a Cloudflare Worker backed by D1; all seven code evals pass against the deployed API. Incomplete: F1 and F3, automatic capture from a listening session, are deferred because no platform exposes shared-session data (ADR-001), and the pool is single-user by design (ADR-002).
 **Hours spent:** 34
 
 ## See It Work
