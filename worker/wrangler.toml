@@ -1,11 +1,12 @@
-name = "final-project-worker"
+# Tells wrangler what to deploy and what the Worker is allowed to reach.
+# Nothing here is secret. The database_id is an address, not a key (STANDARDS.md).
+
+name = "mgt3745-hw4"
 main = "src/index.js"
-compatibility_date = "2026-10-01"
+compatibility_date = "2026-09-01"
 
-[vars]
-GEMINI_MODEL  = "gemini-3.5-flash"   # check the Gemini deprecations page; record the date in context/TOOLS.md
-CF_ACCOUNT_ID = "<your account id>"
-AI_GATEWAY_ID = "<your gateway id>"
-
-# The key is a secret:  npx wrangler secret put GEMINI_API_KEY
-# Local dev reads .dev.vars (git-ignored):  GEMINI_API_KEY="..."
+# The D1 binding. The Worker sees this database as env.DB.
+[[d1_databases]]
+binding = "DB"
+database_name = "mgt3745-entries"
+database_id = "2227fde8-a95f-409b-b3b6-3bcb71c83406"

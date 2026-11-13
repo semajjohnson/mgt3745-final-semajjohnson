@@ -1,29 +1,155 @@
-// Optional: delete worker/ if the project has no backend or AI feature.
-const INSTRUCTION = "Replace with the instruction your EARS row specifies.";
+// worker.js
+// The whole server for The Pool. One row per track-and-person pair, with mood
+// labels in their own table keyed to the entry row.
+
+const CORS = {
+  "access-control-allow-origin": "*",
+  "access-control-allow-methods": "GET, POST, OPTIONS",
+  "access-control-allow-headers": "content-type",
+};
+
+const maxTrackLength = 200;
+const maxSourceLength = 60;
+const maxLabelLength = 30;
 
 export default {
   async fetch(request, env) {
-    const cors = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "Content-Type" };
-    if (request.method === "OPTIONS") return new Response(null, { headers: cors });
-    if (request.method !== "POST") return Response.json({ error: "POST only" }, { status: 405, headers: cors });
-
-    let body;
-    try { body = await request.json(); }
-    catch { return Response.json({ error: "Invalid JSON" }, { status: 400, headers: cors }); }
-    const text = typeof body.text === "string" ? body.text.slice(0, 2000) : "";
-    if (!text) return Response.json({ error: "Missing text" }, { status: 400, headers: cors });
-
-    const url = `https://gateway.ai.cloudflare.com/v1/${env.CF_ACCOUNT_ID}/${env.AI_GATEWAY_ID}`
-              + `/google-ai-studio/v1/models/${env.GEMINI_MODEL}:generateContent`;
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "x-goog-api-key": env.GEMINI_API_KEY },
-      body: JSON.stringify({ contents: [{ parts: [{ text: `${INSTRUCTION}\n\n${text}` }] }] }),
-    });
-    if (!res.ok) return Response.json({ error: `Model request failed (${res.status})` }, { status: 502, headers: cors });
-
-    const data = await res.json();
-    const output = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
-    return Response.json({ output }, { headers: cors });
+    try {
+      return await handle(request, env);
+    } catch (err) {
+      return new Response("server error: " + err.message, { status: 500, headers: CORS });
+    }
   },
 };
+
+function badRequest(message) {
+  return new Response(message, { status: 400, headers: CORS });
+}
+
+async function handle(request, env) {
+  const url = new URL(request.url);
+
+  if (request.method === "OPTIONS") {
+    return new Response(null, { status: 204, headers: CORS });
+  }
+
+  if (!env.DB) {
+    return new Response(
+      "server error: no D1 binding. Check database_id in wrangler.toml and redeploy.",
+      { status: 500, headers: CORS });
+  }
+
+  if (request.method === "GET" && url.pathname === "/") {
+    return Response.json(
+      { service: "The Pool", entries: "/entries", repository: "https://github.com/semajjohnson/mgt3745-hw5" },
+      { headers: CORS });
+  }
+
+  // Dismissed rows stay in the table so a dismissed pair can never be re-added (A7).
+  if (request.method === "GET" && url.pathname === "/entries") {
+    const { results } = await env.DB.prepare(
+      "SELECT id, track, source, created_at FROM entries WHERE dismissed = 0 ORDER BY id").all();
+    const { results: labelRows } = await env.DB.prepare(
+      "SELECT entry_id, label FROM labels ORDER BY label").all();
+    // Labels are attached here rather than joined and concatenated, so a label
+    // containing a comma cannot be split apart on the way out (A10).
+    const withLabels = results.map(row => ({
+      ...row,
+      labels: labelRows.filter(labelRow => labelRow.entry_id === row.id).map(labelRow => labelRow.label),
+    }));
+    return Response.json(withLabels, { headers: CORS });
+  }
+
+  if (request.method === "POST" && url.pathname === "/entries") {
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return badRequest("body must be JSON");
+    }
+
+    const track = typeof body.track === "string" ? body.track.trim() : "";
+    const source = typeof body.source === "string" ? body.source.trim() : "";
+
+    // A8: an item with no person attached is indistinguishable from an
+    // algorithmic suggestion, so it never reaches the table.
+    if (!track) return badRequest("track required");
+    if (!source) return badRequest("source required");
+    if (track.length > maxTrackLength) return badRequest("track too long");
+    if (source.length > maxSourceLength) return badRequest("source too long");
+
+    const existing = await env.DB.prepare(
+      "SELECT dismissed FROM entries WHERE LOWER(track) = LOWER(?) AND LOWER(source) = LOWER(?)")
+      .bind(track, source).first();
+
+    if (existing) {
+      // A7: a dismissed pair is refused rather than re-added.
+      if (existing.dismissed) return badRequest("that track was dismissed from that person");
+      // A9: the same person cannot recommend the same track twice.
+      return badRequest("that track is already in the pool from that person");
+    }
+
+    await env.DB.prepare("INSERT INTO entries (track, source) VALUES (?, ?)")
+      .bind(track, source).run();
+    return new Response(null, { status: 201, headers: CORS });
+  }
+
+  // Dismissal marks the row instead of deleting it, which is what makes A7 enforceable.
+  const dismissMatch = url.pathname.match(/^\/entries\/(\d+)\/dismiss$/);
+  if (request.method === "POST" && dismissMatch) {
+    const result = await env.DB.prepare(
+      "UPDATE entries SET dismissed = 1 WHERE id = ?").bind(dismissMatch[1]).run();
+    if (!result.meta.changes) return new Response("not found", { status: 404, headers: CORS });
+    return new Response(null, { status: 204, headers: CORS });
+  }
+
+  // A10 and A12: a label belongs to one entry row and is validated here, where
+  // the rule cannot be bypassed by editing the page.
+  const labelMatch = url.pathname.match(/^\/entries\/(\d+)\/labels$/);
+  if (request.method === "POST" && labelMatch) {
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return badRequest("body must be JSON");
+    }
+    const label = typeof body.label === "string" ? body.label.trim() : "";
+    if (!label) return badRequest("label required");
+    if (label.length > maxLabelLength) {
+      return badRequest("label must be " + maxLabelLength + " characters or fewer");
+    }
+
+    const entry = await env.DB.prepare("SELECT id FROM entries WHERE id = ?")
+      .bind(labelMatch[1]).first();
+    if (!entry) return new Response("not found", { status: 404, headers: CORS });
+
+    const existingLabel = await env.DB.prepare(
+      "SELECT id FROM labels WHERE entry_id = ? AND LOWER(label) = LOWER(?)")
+      .bind(labelMatch[1], label).first();
+    if (existingLabel) return badRequest("that label is already on this item");
+
+    await env.DB.prepare("INSERT INTO labels (entry_id, label) VALUES (?, ?)")
+      .bind(labelMatch[1], label).run();
+    return new Response(null, { status: 201, headers: CORS });
+  }
+
+  const labelRemoveMatch = url.pathname.match(/^\/entries\/(\d+)\/labels\/remove$/);
+  if (request.method === "POST" && labelRemoveMatch) {
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return badRequest("body must be JSON");
+    }
+    const label = typeof body.label === "string" ? body.label.trim() : "";
+    if (!label) return badRequest("label required");
+
+    const result = await env.DB.prepare(
+      "DELETE FROM labels WHERE entry_id = ? AND LOWER(label) = LOWER(?)")
+      .bind(labelRemoveMatch[1], label).run();
+    if (!result.meta.changes) return new Response("not found", { status: 404, headers: CORS });
+    return new Response(null, { status: 204, headers: CORS });
+  }
+
+  return new Response("not found", { status: 404, headers: CORS });
+}
