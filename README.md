@@ -4,7 +4,7 @@
 
 **Deployed:** [https://semajjohnson.github.io/mgt3745-final-semajjohnson/](https://semajjohnson.github.io/mgt3745-final-semajjohnson/)
 **Status:** Working. The front end is served from GitHub Pages and calls a Cloudflare Worker backed by D1; all seven code evals pass against the deployed API. Incomplete: F1 and F3, automatic capture from a listening session, are deferred because no platform exposes shared-session data (ADR-001), and the pool is single-user by design (ADR-002).
-**Hours spent:** 34
+**Hours spent:** YOUR_NUMBER
 
 ## See It Work
 
