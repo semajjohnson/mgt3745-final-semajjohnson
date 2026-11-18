@@ -64,9 +64,9 @@ The user reviews the pool on demand. Each item can be promoted to a playlist, di
 
 ## 5. Constraints
 
-*Requires a streaming platform API exposing both shared-session events and per-user playback history. Spotify is the assumed platform.
-Designation is mutual and revocable. No capture from anyone who has not accepted.
-Stores only captured tracks and their source names — never a designated person's full listening history.*
+**Constraints on the deferred features F1 and F3, as specified in HW2.** *Automatic capture requires a streaming platform API exposing both shared-session events and per-user playback history; Spotify was the assumed platform at that time. Designation is mutual and revocable, with no capture from anyone who has not accepted. Stores only captured tracks and their source names, never a designated person's full listening history.*
+
+**Constraints on what is built.** The build depends on **no streaming platform at all.** Testing Spotify against Apple MusicKit showed the two store incompatible track identifiers and neither exposes shared-session events, and one of two interviewees is on Apple Music, so F1 and F3 were deferred rather than scheduled (ADR-001). Entries are typed by hand and stored in Cloudflare D1 behind a Worker (ADR-002). The pool is single-user by design. Every vendor crossing is in [TOOLS.md](TOOLS.md).
 
 ---
 
