@@ -10,6 +10,14 @@ Two interviews revised my original adequacy bar. I had assumed transparency was 
 
 Primary: the Casual Listener, who listens while doing something else, picks up music socially when it happens to cross their path, and prunes unwanted algorithmic suggestions aggressively. Secondary: the Deliberate Digger, a musician or serious enthusiast for whom listening is study, who discovers through friends and community forums and whose friction is organization and retrieval rather than suggestion quality. Both trust people over systems. Full profiles, with every claim marked known or assumed, are in [USERS.md](USERS.md).
 
+## Success measures
+
+**Outcome — the thing this exists to cause.** Of the entries a listener adds in their first session, at least half are still in the pool and not dismissed two weeks later. The pool's whole claim is that human-sourced music is worth keeping; if people add tracks and then dismiss them, the premise is wrong and no interface fixes that. Measured against `created_at` and the `dismissed` flag in D1, as a rerunnable query in `evals/queries/`.
+
+**Leading indicator — early behavior that predicts it.** At least one return visit within seven days of a listener's first entry. Observable well before December 14, and it predicts the outcome directly: nobody keeps a pool they never reopen. Measured by a second cluster of `created_at` values for the same listener.
+
+**Guardrail — what must stay acceptable while I pursue the outcome.** No entry is ever lost. Zero rows disappear between sessions, and every entry a listener remembers adding is there when they come back. ADR-002 exists precisely to make the pool survive a cleared cache; if entries vanish the outcome above is meaningless, because nobody keeps what they cannot trust. Checked by row count before and after each session, against the `wrangler d1 export` dump.
+
 ## Scope
 
 **In:** a pool of tracks where every item carries the name of the person it came from and cannot exist without one; merging a track recommended by more than one person into a single entry; dismissing an item so that pair never returns; persistence on a server so the pool survives a cleared cache and appears in any browser.
