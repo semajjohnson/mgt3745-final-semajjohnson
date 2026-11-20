@@ -26,8 +26,20 @@ Observed in the real-user sessions recorded in [FEEDBACK.md](FEEDBACK.md), with 
 
 Both options are defensible from evidence already in the repository, and they point opposite ways. The RAT argues for retrieval. The user profiles argue for capture. Nothing I already know settles it, which is why it waits on watching real people rather than on more thinking.
 
-## Resolved beneath (<pending>)
+## Resolved beneath (2026-11-20)
 
-Result:
-Decision:
-Reversal trigger:
+**Result.** Three sessions, recorded in [FEEDBACK.md](FEEDBACK.md). Add failures: 1 of 3 users — the brother could not find mood tagging, because it is a second step after saving rather than a field in the initial input. Find failures: 0, but the find task only ran with one of the three people, so that side of the comparison rests on a single observation. Both counts are far thinner than the threshold assumed when it was written.
+
+By the letter of the threshold, add failures exceeded find failures and the decision switches to **Option B, capture friction**. I am recording that, and recording that one observation against zero is not a real margin. If the find task had run three times instead of once the comparison could have gone either way.
+
+**Decision: Option B, reduce capture friction — specifically, move mood tagging into the initial input rather than leaving it as a second step.** This is the narrowest version of Option B. It is the one failure actually observed, it is a change to a form rather than to the schema, and it does not foreclose Option A later.
+
+Retrieval is not refuted. Nobody failed to find anything, but with a pool this small and one attempt, that is a statement about the test rather than about F5.
+
+**What the sessions found that this decision did not ask about, and which matters more.** All three users independently described the product as a way of *sharing* music with other people. PROJECT.md scopes a personal pool and ADR-002 records it as single-user by design. The classmate said plainly that using it again depends on other users existing. The brother's objection — "redundant because Spotify exists" — is the same point from the other side: as a private archive it competes with a notes app, and as a shared one it competes with Blend and wins on the thing Blend throws away, which is who the track came from.
+
+So the real fork is not retrieval versus capture. It is whether the pool stays single-user. That question is larger than this decision memo, it belongs in an ADR rather than here, and three sessions is not enough to answer it. What it does is fire a reversal trigger that was already written down.
+
+**Reversal trigger.** ADR-002's first reversal trigger reads: "A second person uses the pool. Every assumption above is single-writer, and two writers on one D1 table is the next ADR." Three people used one shared pool on 2026-11-20 and one of them found another's entry, so the trigger has fired on its own terms. ADR-003 is now owed, and it should decide whether the pool becomes multi-user before December 14 or whether single-user is reaffirmed with this evidence recorded against it.
+
+This decision — mood tagging into the initial input — stands either way, because it is a form change that survives both answers.
